@@ -8,7 +8,8 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test test/*.test.ts",
-    "bootstrap": "node --env-file=.env.local scripts/bootstrap.mjs"
+    "bootstrap": "node --env-file=.env.local scripts/bootstrap.mjs",
+    "lint": "eslint ."
   },
   "dependencies": {
     "next": "^15.5.0",
@@ -18,9 +19,12 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.3.0",
+    "@eslint/eslintrc": "^3.0.0",
     "@types/node": "^22.0.0",
     "@types/pg": "^8.11.0",
     "@types/react": "^19.0.0",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "^15.5.0",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0"
   }
