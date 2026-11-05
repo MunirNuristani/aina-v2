@@ -1,0 +1,12 @@
+{
+  "client_batch_id": "6f1c0b0e-6e4e-4a53-9a3f-0f6a1d1d2b11",
+  "firmware_version": "0.1.0-dev",
+  "uptime_s": 10800,
+  "wifi_rssi": -61,
+  "samples": [
+    { "channel": 1, "t": "__NOW__", "raw": 3088, "spread": 54 },
+    { "channel": 2, "t": "__NOW__", "raw": 2720, "spread": 61 },
+    { "channel": 3, "t": "__NOW__", "raw": 2787, "spread": 45 },
+    { "channel": 4, "t": "__NOW__", "raw": 3125, "spread": 80 }
+  ]
+}

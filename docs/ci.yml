@@ -1,0 +1,83 @@
+name: CI
+
+# Runs on every pull request, and on every push to main (so a broken merge is noticed).
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# The default token can do a lot (write to the repo, etc.). CI only needs to read the code.
+permissions:
+  contents: read
+
+# A new push to the same branch cancels the older run still in progress. Saves minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    name: web (typecheck, test, build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      # npm ci installs EXACTLY what package-lock.json says and fails if package.json and the lock disagree.
+      # (npm install may quietly rewrite the lock, which hides "works on my machine" problems.)
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+
+  db:
+    name: db (migrations and seed on real Postgres 16)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: aina
+          POSTGRES_PASSWORD: ci-only # throwaway database that dies with the job
+          POSTGRES_DB: aina
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U aina -d aina"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DB_URL: postgres://aina:ci-only@localhost:5432/aina
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install psql client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+
+      # Every migration, in filename order, on an empty database. ON_ERROR_STOP makes psql exit non-zero on the
+      # first error; without it psql prints the error and carries on, and the job would pass while broken.
+      - name: Apply migrations
+        run: |
+          for f in db/migrations/*.sql; do
+            echo "== $f"
+            psql "$DB_URL" -v ON_ERROR_STOP=1 -q -f "$f"
+          done
+
+      - name: Load dev seed
+        run: psql "$DB_URL" -v ON_ERROR_STOP=1 -q -f db/seed/dev_seed.sql
+
+      - name: Sanity query
+        run: psql "$DB_URL" -v ON_ERROR_STOP=1 -c "select count(*) as readings from readings"

@@ -1,0 +1,25 @@
+# Local dev database only. Throwaway data, throwaway password.
+#   docker compose -f db/docker-compose.yml up -d      # start (first run downloads the image)
+#   docker compose -f db/docker-compose.yml down       # stop, KEEP data (volume survives)
+#   docker compose -f db/docker-compose.yml down -v    # stop and DELETE data (fresh start)
+#
+# Host port 5434, not 5432/5433: 5432 is Postgres' default and 5433 is the old aina-plant project's.
+# A port can only be used by one program, and "address already in use" is a confusing first error.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: aina
+      POSTGRES_PASSWORD: aina-dev-only
+      POSTGRES_DB: aina
+    ports:
+      - "127.0.0.1:5434:5432"      # 127.0.0.1 = only this machine can connect, not your wifi neighbours
+    volumes:
+      - aina_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aina -d aina"]
+      interval: 3s
+      retries: 20
+
+volumes:
+  aina_pgdata:

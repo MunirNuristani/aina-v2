@@ -1,0 +1,16 @@
+# macOS
+.DS_Store
+
+# secrets: never commit these. Real keys live in a password manager and in Vercel's env settings.
+.env*.local
+.env.local
+secrets.h
+
+# Node / Next.js (web/ has its own .gitignore too; this is a safety net)
+node_modules/
+.next/
+*.tsbuildinfo
+
+# PlatformIO build output and editor state
+.pio/
+.vscode/
