@@ -25,7 +25,8 @@ before(async () => {
       ('00000000-0000-0000-0000-0000000000e1','00000000-0000-0000-0000-0000000000a2','00000000-0000-0000-0000-0000000000b2',1,'G1');`);
 });
 
-const batch = (id: string, samples: object[]) => ({ client_batch_id: id, firmware_version: "0.1.0-dev", uptime_s: 100, wifi_rssi: -60, samples });
+type Body = { client_batch_id: string; firmware_version?: string; uptime_s?: number; wifi_rssi?: number; samples: Record<string, unknown>[] };
+const batch = (id: string, samples: Record<string, unknown>[]): Body => ({ client_batch_id: id, firmware_version: "0.1.0-dev", uptime_s: 100, wifi_rssi: -60, samples });
 const sample = (channel: number, t: string, raw = 2000) => ({ channel, t, raw, spread: 20 });
 const parse = (body: unknown) => {
   const r = parsePayload(body, NOW);
@@ -51,18 +52,18 @@ test("validation: accepts a good payload, fills spread default, normalizes time"
   assert.equal(v.samples[0]!.spread, 0);
 });
 
-const bad: [string, (b: any) => void][] = [
-  ["non-object body", (b) => Object.keys(b).forEach((k) => delete b[k])],
+const bad: [string, (b: Body) => void][] = [
+  ["non-object body", (b) => Object.keys(b).forEach((k) => delete (b as Record<string, unknown>)[k])],
   ["bad batch id", (b) => (b.client_batch_id = "nope")],
   ["empty samples", (b) => (b.samples = [])],
-  ["raw out of range", (b) => (b.samples[0].raw = 5000)],
-  ["raw not an integer", (b) => (b.samples[0].raw = 2000.5)],
-  ["raw as string", (b) => (b.samples[0].raw = "2000")],
-  ["channel 0", (b) => (b.samples[0].channel = 0)],
-  ["time without zone", (b) => (b.samples[0].t = "2026-11-03T21:45:00")],
-  ["time 1970 (no NTP)", (b) => (b.samples[0].t = "1970-01-01T00:00:10Z")],
-  ["time in the future", (b) => (b.samples[0].t = "2026-11-03T23:00:00Z")],
-  ["time 40 days old", (b) => (b.samples[0].t = "2026-09-20T00:00:00Z")],
+  ["raw out of range", (b) => (b.samples[0]!.raw = 5000)],
+  ["raw not an integer", (b) => (b.samples[0]!.raw = 2000.5)],
+  ["raw as string", (b) => (b.samples[0]!.raw = "2000")],
+  ["channel 0", (b) => (b.samples[0]!.channel = 0)],
+  ["time without zone", (b) => (b.samples[0]!.t = "2026-11-03T21:45:00")],
+  ["time 1970 (no NTP)", (b) => (b.samples[0]!.t = "1970-01-01T00:00:10Z")],
+  ["time in the future", (b) => (b.samples[0]!.t = "2026-11-03T23:00:00Z")],
+  ["time 40 days old", (b) => (b.samples[0]!.t = "2026-09-20T00:00:00Z")],
   ["rssi positive", (b) => (b.wifi_rssi = 5)],
   ["too many samples", (b) => (b.samples = Array.from({ length: 501 }, () => sample(1, "2026-11-03T21:45:00Z")))],
 ];
@@ -91,7 +92,7 @@ test("auth: hashKey is 32 bytes and stable", () => {
 });
 
 // ---------- ingest ----------
-const run = (id: string, samples: object[]) =>
+const run = (id: string, samples: Record<string, unknown>[]) =>
   runInTransaction(db, () => ingestBatch(db, BOARD, parse(batch(id, samples))));
 
 test("ingest: first post inserts, maps channel to sensor, touches the board", async () => {
